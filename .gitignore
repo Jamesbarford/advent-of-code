@@ -1,0 +1,16 @@
+*.o
+*.out
+*.dSYM
+*.json
+*.js
+node_modules
+*.lock
+.idea
+.vscode
+*.iml
+*.out
+**/output
+config
+.DS_Store
+*.class
+*.ll
