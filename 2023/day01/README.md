@@ -26,3 +26,5 @@ for (I64 i = 0; i < len; i++) {
 
 For part2 I realised I can load a temporary `I64` array with the extracted values and go line by line
 which, while still really grim, made part2 possible!
+
+The code looks extremely strange but this is mostly due to a partially complete compiler than my shoddy programming skills (I hope)!
