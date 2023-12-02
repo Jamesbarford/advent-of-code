@@ -1,9 +1,3 @@
-/**
- * The Elf would first like to know which games would have been possible if the 
- * bag contained only 12 red cubes, 13 green cubes, and 14 blue cubes?
- *
- * Sum the ids of the possible games.
- */
 I64 RGB[3] = {0,0,0};
 
 I64 HashFunction(I64 ch)
