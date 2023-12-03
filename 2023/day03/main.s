@@ -93,6 +93,26 @@ _STRLEN:
     leave
     ret
 
+.global _MALLOC
+_MALLOC:
+	pushq	%rbp
+	movq	%rsp, %rbp
+	movq	%rdi, %rax
+	movq    %rax, %rdi
+	call    _malloc
+	leave
+	ret
+
+.global _FREE
+_FREE:
+	pushq	%rbp
+	movq	%rsp, %rbp
+	movq	%rdi, %rax
+	movq    %rax, %rdi
+	call    _free
+	leave
+	ret
+
 .data
 .L0:
 	.string "%d \0"
@@ -223,7 +243,19 @@ _InBounds:
 	movq   %rsi, -24(%rbp)
 	movq   %rdx, -16(%rbp)
 	# AND AND Start
-	# Diamond start
+	# RANGE Start
+	movq   $0, %rax
+	push   %rax
+	# LOAD rax START
+	movq   -24(%rbp), %rax
+	# LOAD rax END
+	pop    %rcx
+	cmp    %rax, %rcx
+	setle   %al
+	movzb  %al, %rax
+	test   %rax, %rax
+	movq   $0, %rax
+	je     .L6
 	# LOAD rax START
 	movq   -24(%rbp), %rax
 	# LOAD rax END
@@ -233,38 +265,33 @@ _InBounds:
 	# LOAD rax END
 	movq   24(%rax), %rcx
 	movq   %rcx, %rax
-	push   %rax
-	movq   $1, %rax
-	movq   %rax, %rcx
-	pop    %rax
-	subq   %rcx, %rax
 	pop    %rcx
 	cmp    %rax, %rcx
-	setle  %al
-	movzb  %al, %rax
-	test   %rax, %rax
-	movq   $0, %rax
-	je     .L6
-	# LOAD rax START
-	movq   -24(%rbp), %rax
-	# LOAD rax END
-	push   %rax
-	movq   $0, %rax
-	pop    %rcx
-	cmp    %rax, %rcx
-	setge  %al
+	setl    %al
 	movzb  %al, %rax
 	test   %rax, %rax
 	movq   $0, %rax
 	je     .L6
 	movq   $1, %rax
 	.L6:
-	# Diamond end
+	# Range END 
 	
 	test   %rax, %rax
 	movq   $0, %rax
 	je    .L5
-	# Diamond start
+	# RANGE Start
+	movq   $0, %rax
+	push   %rax
+	# LOAD rax START
+	movq   -16(%rbp), %rax
+	# LOAD rax END
+	pop    %rcx
+	cmp    %rax, %rcx
+	setle   %al
+	movzb  %al, %rax
+	test   %rax, %rax
+	movq   $0, %rax
+	je     .L7
 	# LOAD rax START
 	movq   -16(%rbp), %rax
 	# LOAD rax END
@@ -274,33 +301,16 @@ _InBounds:
 	# LOAD rax END
 	movq   32(%rax), %rcx
 	movq   %rcx, %rax
-	push   %rax
-	movq   $1, %rax
-	movq   %rax, %rcx
-	pop    %rax
-	subq   %rcx, %rax
 	pop    %rcx
 	cmp    %rax, %rcx
-	setle  %al
-	movzb  %al, %rax
-	test   %rax, %rax
-	movq   $0, %rax
-	je     .L7
-	# LOAD rax START
-	movq   -16(%rbp), %rax
-	# LOAD rax END
-	push   %rax
-	movq   $0, %rax
-	pop    %rcx
-	cmp    %rax, %rcx
-	setge  %al
+	setl    %al
 	movzb  %al, %rax
 	test   %rax, %rax
 	movq   $0, %rax
 	je     .L7
 	movq   $1, %rax
 	.L7:
-	# Diamond end
+	# Range END 
 	
 	test   %rax, %rax
 	movq   $0, %rax
@@ -550,7 +560,24 @@ _ParseNumber:
 	movq   $0, %rax
 	movq   %rax, -16(%rbp)
 .L17:
-	# Diamond start
+	# RANGE Start
+	movq   $48, %rax
+	push   %rax
+	# LOAD rax START
+	movq   -48(%rbp), %rax
+	# LOAD rax END
+	##__DEREF_START: AST_TYPE_CHAR
+	movq   %rax, %rcx
+	movzbl (%rcx), %eax
+	movsbl  %al, %eax
+	##__DEREF_END
+	pop    %rcx
+	cmp    %rax, %rcx
+	setle   %al
+	movzb  %al, %rax
+	test   %rax, %rax
+	movq   $0, %rax
+	je     .L19
 	# LOAD rax START
 	movq   -48(%rbp), %rax
 	# LOAD rax END
@@ -563,31 +590,14 @@ _ParseNumber:
 	movq   $57, %rax
 	pop    %rcx
 	cmp    %rax, %rcx
-	setle  %al
-	movzb  %al, %rax
-	test   %rax, %rax
-	movq   $0, %rax
-	je     .L19
-	# LOAD rax START
-	movq   -48(%rbp), %rax
-	# LOAD rax END
-	##__DEREF_START: AST_TYPE_CHAR
-	movq   %rax, %rcx
-	movzbl (%rcx), %eax
-	movsbl  %al, %eax
-	##__DEREF_END
-	push   %rax
-	movq   $48, %rax
-	pop    %rcx
-	cmp    %rax, %rcx
-	setge  %al
+	setle   %al
 	movzb  %al, %rax
 	test   %rax, %rax
 	movq   $0, %rax
 	je     .L19
 	movq   $1, %rax
 	.L19:
-	# Diamond end
+	# Range END 
 	
 	test   %rax, %rax
 	je     .L18
@@ -705,7 +715,24 @@ _FileToMatrix:
 	##__DEREF_END
 	test   %rax, %rax
 	je     .L21
-	# Diamond start
+	# RANGE Start
+	movq   $48, %rax
+	push   %rax
+	# LOAD rax START
+	movq   -80(%rbp), %rax
+	# LOAD rax END
+	##__DEREF_START: AST_TYPE_CHAR
+	movq   %rax, %rcx
+	movzbl (%rcx), %eax
+	movsbl  %al, %eax
+	##__DEREF_END
+	pop    %rcx
+	cmp    %rax, %rcx
+	setle   %al
+	movzb  %al, %rax
+	test   %rax, %rax
+	movq   $0, %rax
+	je     .L22
 	# LOAD rax START
 	movq   -80(%rbp), %rax
 	# LOAD rax END
@@ -718,31 +745,14 @@ _FileToMatrix:
 	movq   $57, %rax
 	pop    %rcx
 	cmp    %rax, %rcx
-	setle  %al
-	movzb  %al, %rax
-	test   %rax, %rax
-	movq   $0, %rax
-	je     .L22
-	# LOAD rax START
-	movq   -80(%rbp), %rax
-	# LOAD rax END
-	##__DEREF_START: AST_TYPE_CHAR
-	movq   %rax, %rcx
-	movzbl (%rcx), %eax
-	movsbl  %al, %eax
-	##__DEREF_END
-	push   %rax
-	movq   $48, %rax
-	pop    %rcx
-	cmp    %rax, %rcx
-	setge  %al
+	setle   %al
 	movzb  %al, %rax
 	test   %rax, %rax
 	movq   $0, %rax
 	je     .L22
 	movq   $1, %rax
 	.L22:
-	# Diamond end
+	# Range END 
 	
 	test   %rax, %rax
 	je     .L23
@@ -1752,7 +1762,7 @@ _IsAdjacentToGear:
 	test   %rax, %rax
 	movq   $0, %rax
 	je    .L53
-	# LOAD LEAQ START: 20005488 # LOAD LEAQ START: %d %s
+	# LOAD LEAQ START: 46105152 # LOAD LEAQ START: %d %s
 	
 	leaq   -72(%rbp), %rax
 	# LOAD LEAQ END: array I64[64]
@@ -1786,7 +1796,7 @@ _IsAdjacentToGear:
 	# LOAD rax END
 	push   %rax
 	# Pointer Arithmetic start
-	# LOAD LEAQ START: 20005728 # LOAD LEAQ START: %d %s
+	# LOAD LEAQ START: 46105392 # LOAD LEAQ START: %d %s
 	
 	leaq   -72(%rbp), %rax
 	# LOAD LEAQ END: array I64[64]
@@ -1829,7 +1839,7 @@ _IsAdjacentToGear:
 	test   %rax, %rax
 	je     .L55
 	# Pointer Arithmetic start
-	# LOAD LEAQ START: 20005968 # LOAD LEAQ START: %d %s
+	# LOAD LEAQ START: 46105632 # LOAD LEAQ START: %d %s
 	
 	leaq   -72(%rbp), %rax
 	# LOAD LEAQ END: array I64[64]
@@ -1845,7 +1855,7 @@ _IsAdjacentToGear:
 	##__DEREF_END
 	push   %rax
 	# Pointer Arithmetic start
-	# LOAD LEAQ START: 20006160 # LOAD LEAQ START: %d %s
+	# LOAD LEAQ START: 46105824 # LOAD LEAQ START: %d %s
 	
 	leaq   -72(%rbp), %rax
 	# LOAD LEAQ END: array I64[64]

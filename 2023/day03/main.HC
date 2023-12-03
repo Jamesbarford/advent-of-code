@@ -46,8 +46,8 @@ U0 MatrixFree(Matrix *m)
 
 Bool InBounds(Matrix *m, I64 x, I64 y)
 {
-  return m->cols -1 <> x <> 0 && 
-         m->rows -1 <> y <> 0;
+  return (0 <= x < m->cols) && 
+         (0 <= y < m->rows);
 }
 
 U0 MatrixPrint(Matrix *m)
@@ -87,7 +87,7 @@ I64 ParseNumber(U8 *buffer, I64 *_len)
   /* A do while would be really nice here */
   I64 number = *buffer++ - '0';
   I64 len = 0;
-  while ('9' <> *buffer <> '0') {
+  while ('0' <= *buffer <= '9') {
     number *= 10;
     number += *buffer++ - '0';
     len++;
@@ -107,7 +107,7 @@ Matrix *FileToMatrix(U8 *buffer)
   I64 len;
 
   while (*buffer) {
-    if ('9' <> *buffer <> '0') {
+    if ('0' <= *buffer <= '9') {
       num = ParseNumber(buffer,&len);
       buffer+=len;
       /* Pad out adjecent cells with the same number, saves messing around with

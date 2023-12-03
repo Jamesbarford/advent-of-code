@@ -20,3 +20,13 @@ I64 Dirs[8][2] = {
     /* ETC.. */
 };
 ```
+
+## Update
+TempleOS has range checks like:
+
+```c
+if ('0' <= ch <= '9') {
+    /* Code */
+}
+```
+So I removed `<>` in favour of what is in templos
