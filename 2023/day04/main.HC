@@ -41,20 +41,29 @@ U0 CardFree(Card *c)
   Free(c);
 }
 
-I64 GetLine(U8 *src, U8 *dst, I64 *_len)
-{ // Store a line in dst 
-  I64 len = 0;
+public I64 GetLine(U8 **_src, U8 *dst)
+{ // Will put a '\0' terminated string in 'dst'. Containing one line, 
+  // mutates _src
+  U8 *src = *_src;
+  *dst = '\0';
+
+  if (*src == '\0') {
+    return 0;
+  }
+
   while (*src && *src != '\n') {
-    dst[len++] = *src++;
+    *dst = *src;
+    dst++;
+    src++;
   }
-  dst[len] = '\0';
-  if (_len) {
-    *_len = len;
+
+  if (*src == '\n') {
+    *dst = '\0';
+    src++;
   }
-  if (len == 0) {
-    return NULL;
-  }
-  return dst;
+
+  *_src = src;
+  return 1;
 }
 
 I64 ParseNumber(U8 *buffer, I64 *_len)
@@ -136,9 +145,10 @@ U64 GetCardScore(Card *card, I64 *_matches)
   QSort(card->winning,card->wlen-1,0);
   QSort(card->player,card->plen-1,0);
 
-  while (w < card->wlen) {
+  while (w < card->wlen && p < card->plen) {
     w_num = card->winning[w];
     p_num = card->player[p];
+
     if (p_num == w_num) {
       ++p;
       ++w;
@@ -148,8 +158,7 @@ U64 GetCardScore(Card *card, I64 *_matches)
       } else {
         score *= 2;
       }
-    }
-    if (p_num < w_num) {
+    } else if (p_num < w_num) {
       ++p;
     } else if (p_num > w_num) {
       ++w;
@@ -164,24 +173,21 @@ U64 GetCardScore(Card *card, I64 *_matches)
 public U64 SolvePart1(U8 *ptr)
 {
   U8 *line[MAX_LINE_LEN];
-  I64 len;
   U64 total = 0;
   Card *card = CardNew();
 
-  while (GetLine(ptr,line,&len)) {
+  while (GetLine(&ptr,line)) {
     LineToCard(card,line);
     total += GetCardScore(card,NULL);
-    /* Move to the next line */
-    ptr += len + 1;
   }
+  Free(card);
   return total;
 }
 
 public U64 SolvePart2(U8 *ptr)
 {
   U8 *line[MAX_LINE_LEN];
-  I64 cardcounts[MAX_GAMES];
-  I64 len, winners = 0, num_games = 0;
+  I64 cardcounts[MAX_GAMES],winners = 0, num_games = 0;
   U64 total = 0;
   Card *card = CardNew();
 
@@ -189,22 +195,21 @@ public U64 SolvePart2(U8 *ptr)
     cardcounts[i] = 1;
   }
 
-  while (GetLine(ptr,line,&len)) {
+  while (GetLine(&ptr,line)) {
     LineToCard(card,line);
+    winners = 0;
     GetCardScore(card,&winners);
-
     for (I64 i = 1; i <= winners; ++i) {
       cardcounts[card->id+i] += cardcounts[card->id];
     }
-    /* Move to the next line */
-    ptr += len + 1;
     ++num_games;
   }
-  
+
   for (I64 i = 1; i <= num_games; ++i) {
     total += cardcounts[i];
   }
 
+  Free(card);
   return total;
 }
 
@@ -212,9 +217,9 @@ U0 Main()
 {
   U64 len;
   U8 *buffer = FileRead("./input.txt",FILE_ALLOC,&len);
-
-  U64 s1 = SolvePart1(buffer);
+  I64 s1 = SolvePart1(buffer);
   "part1: %zu\n", s1;
-  U64 s2 = SolvePart2(buffer);
-  "part1: %zu\n", s2;
+  I64 s2 = SolvePart2(buffer);
+  "part2: %zu\n", s2;
+  Free(buffer);
 }
