@@ -14,3 +14,5 @@ config
 .DS_Store
 *.class
 *.ll
+input.txt
+sample.txt
