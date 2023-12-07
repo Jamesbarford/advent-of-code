@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <pthread.h>
 
 #define HT_SIZE    16
 #define LINE_LEN   512
@@ -16,7 +17,7 @@
 
 typedef struct Array {
     unsigned char *key;
-    long *data;
+    unsigned long *data;
     long rows;
     long cols;
 } Array;
@@ -27,6 +28,12 @@ typedef struct Ht {
     unsigned long bitmap;
     Array **entries;
 } Ht;
+
+typedef struct Tuple
+{
+long  t[2];
+} Tuple;
+
 
 Ht *htNew(long cap) {
     Ht *ht = malloc(sizeof(Ht));
@@ -157,7 +164,7 @@ long parseNumber(unsigned char *buffer, long *_len) { // A poor mans strtoll
     return number;
 }
 
-long parseNumbersUntil(long *arr, long *_arr_len, unsigned char *ptr,
+long parseNumbersUntil(unsigned long *arr, long *_arr_len, unsigned char *ptr,
                       long ch) { // Parse numbers until 'ch' storing them in arr;
     // Returns the number of characters to skip
     long num, num_len, skip = 0, arr_len = 0;
@@ -178,7 +185,8 @@ long parseNumbersUntil(long *arr, long *_arr_len, unsigned char *ptr,
 Array *parseMappings(unsigned char *key,
                      unsigned char **_ptr) { // Get the dimensions of the Almanac mappings
     unsigned char line[LINE_LEN], *ptr, *lptr;
-    long arr[512], arr_len, len;
+    unsigned long arr[512]; 
+    long arr_len, len;
     Array *mappings;
 
     mappings = NULL;
@@ -337,7 +345,7 @@ unsigned long getNextLocation(Array *ptr, long seed) {
         len = ptr->data[LEN_IDX + row];
         r1 = src + len;
         r2 = dst + len;
-        if (src <= seed <= r1) {
+        if (seed >= src && seed <= r1) {
             seed -= src;
             seed += dst;
             return seed;
@@ -346,16 +354,24 @@ unsigned long getNextLocation(Array *ptr, long seed) {
     return seed;
 }
 
-unsigned long solvePart2(Ht *t, long seed_start, long seed_end) {
+typedef struct threadCtx {
+    unsigned long start;
+    unsigned long end;
+    unsigned long min;
+    unsigned long id;
+    Ht *ht;
+    pthread_t th;
+} threadCtx;
+
+void *threadRunner(void *argv) {
+    threadCtx *ctx = (threadCtx *)argv;
+    printf("Thread: %zu doing %zu to %zu\n",ctx->id,ctx->start,ctx->end);
     unsigned long arr[7], *solutions, *seen, key, src, dst, len, r1, r2, s1, s2, total,
             solution_idx, range;
     Array *ptr;
-    range = seed_end - seed_start;
-
-    printf("range: %ld\n", range);
-    long min = LONG_MAX;
+    range = ctx->end - ctx->start;
+    unsigned long min = UINT_MAX;
     key = src = dst = len = solution_idx = 0;
-
     arr[0] = hashIdx((unsigned char *)"seed-to-soil");
     arr[1] = hashIdx((unsigned char *)"soil-to-fertilizer");
     arr[2] = hashIdx((unsigned char *)"fertilizer-to-water");
@@ -363,21 +379,21 @@ unsigned long solvePart2(Ht *t, long seed_start, long seed_end) {
     arr[4] = hashIdx((unsigned char *)"light-to-temperature");
     arr[5] = hashIdx((unsigned char *)"temperature-to-humidity");
     arr[6] = hashIdx((unsigned char *)"humidity-to-location");
-
-    for (long seed = seed_start; seed <= seed_end; ++seed) {
+    for (long seed = ctx->start; seed <= ctx->end; ++seed) {
         s1 = seed;
-        s2 = s1;
         for (long idx = 0; idx < 7; ++idx) {
             key = arr[idx];
-            ptr = t->entries[key];
-            total = (ptr->rows) * (ptr->cols);
+            ptr = ctx->ht->entries[key];
             s1 = getNextLocation(ptr, s1);
         }
         if (s1 < min) {
             min = s1;
         }
     }
-    return min;
+
+    printf("THREAD: %zu min -> %zu\n", ctx->id, min);
+    ctx->min = min;
+    return NULL;
 }
 
 long solve2(Ht *ht) {
@@ -386,19 +402,35 @@ long solve2(Ht *ht) {
     long start, end, len;
     long *mins = malloc(sizeof(long) * 5000);
     len = 0;
+    long id = 0;
+    threadCtx *contexts, *ctx;
+    contexts = malloc(sizeof(threadCtx) * 50);
 
     for (long i = 0; i < seeds->cols; i += 2) {
-        start = seeds->data[i];
-        end = start + seeds->data[i + 1] - 1;
-        printf("{start:%ld, end:%ld},\n", start, end);
-        mins[len++] = solvePart2(ht, start, end);
+        ctx = &contexts[id++];
+        ctx->id = id;
+        ctx->start = seeds->data[i];
+        ctx->end = ctx->start + seeds->data[i + 1];
+        ctx->ht = ht;
+        printf("start %zu end: %zu\n"
+                "s: %zu len: %zu\n",ctx->start,ctx->end,
+                seeds->data[i],seeds->data[i+1]);
+        ctx->min = LONG_MAX;
+        pthread_create(&ctx->th,NULL,threadRunner,ctx);
     }
 
-    qSort(mins, len - 1, 0);
-    for (long i = 0; i < len; ++i) {
-        printf("%ld\n", mins[i]);
+    for (long i = 0; i < id; ++i) {
+        pthread_join(contexts[i].th,NULL);
     }
-    return mins[0];
+    unsigned long min = LONG_MAX;
+    for (long i = 0; i < id; ++i) {
+        ctx = &contexts[i];
+        if (ctx->min < min) {
+            min = ctx->min;
+        }
+    }
+
+    return min;
 }
 
 unsigned char *fileRead(char *file_name, long size, long *_len) {
