@@ -15,6 +15,11 @@ class Array
   I64 cols;
 };
 
+class Tuple
+{
+  U64 t[2];
+};
+
 class Ht
 {
   I64 len;
@@ -239,7 +244,7 @@ Ht *ParseInput(U8 *buffer)
       if (!StrNCmp(key,"seeds",5)) {
         arr = ArrayNew(key,100,100);
         lptr += 2;
-        ParseNumbersUntil(arr->data,&arr->cols,lptr,'\0');
+        ParseNumbersUntil(arr->data,&(arr->cols),lptr,'\0');
         arr->rows = 1;
         HtSet(ht,key,arr);
       } else {
@@ -352,76 +357,129 @@ U64 GetNextLocation(Array *ptr, I64 seed)
   return seed;
 }
 
-U64 SolvePart2(Ht *t, I64 seed_start, I64 seed_end)
+inline I64 Max(I64 i1, I64 i2)
 {
-  U64 arr[7],*solutions,*seen,
-      key,src,dst,
-      len,r1,r2,s1,s2,total,solution_idx,range;
-  Array *ptr;
-  range = seed_end-seed_start;
-
-    "range: %ld\n",range;
-  I64 min=1<<32;
-  key=src=dst=len=solution_idx=0;
-
-  arr[0] = HashIdx("seed-to-soil");
-  arr[1] = HashIdx("soil-to-fertilizer");
-  arr[2] = HashIdx("fertilizer-to-water");
-  arr[3] = HashIdx("water-to-light");
-  arr[4] = HashIdx("light-to-temperature");
-  arr[5] = HashIdx("temperature-to-humidity");
-  arr[6] = HashIdx("humidity-to-location");
-
-  for (I64 seed = seed_start; seed <= seed_end; ++seed) {
-    s1 = seed;
-    s2 = s1;
-    for (I64 idx = 0; idx < 7; ++idx) {
-      key = arr[idx];
-      ptr = t->entries[key];
-      total = (ptr->rows) * (ptr->cols);
-      s1 = GetNextLocation(ptr,s1);
-    }
-    if (s1 < min) {
-      min = s1;
-    }
-  }
-  return min;
+  if (i1 > i2) return i1;
+  return i2;
 }
 
-U0 Solve2(Ht *ht)
+inline I64 Min(I64 i1, I64 i2)
 {
-  I64 idx = HashIdx("seeds");
+  if (i1 < i2) return i1;
+  return i2;
+}
+
+U0 StackPush(U64 **_arr, I64 *_sp, U64 num1, U64 num2)
+{
+  "PUSH start: %p\n", _sp;
+  I64 sp = *_sp;
+  _arr[sp][0] = num1;
+  "PUSH SUCCESS\n";
+  _arr[sp][1] = num2;
+  sp++;
+  *_sp = sp;
+}
+
+
+U64 SolvePart2(Ht *ht)
+{
+  I64 min, sp = 0, sp2 = 0,src,dst,len,start,end,
+      overlap_end,overlap_start,idx, key, _arr[7], total;
+  idx = HashIdx("seeds");
   Array *seeds = ht->entries[idx];
-  I64 start,end,len;
-  I64 *mins = MAlloc(sizeof(I64)*5000);
-  len = 0;
+  U64 **stack = MAlloc(sizeof(Tuple *) * 1000);
+  U64 **sources = MAlloc(sizeof(Tuple *) * 1000);
+  U64 **tmp = MAlloc(sizeof(Tuple *) * 1000);
+  Array *ptr;
 
-  for (I64 i = 0; i < seeds->cols; i += 2) {
-    start = seeds->data[i];
-    end = start + seeds->data[i+1]-1;
-    "{start:%ld, end:%ld},\n",start,end;
-  mins[len++] = SolvePart2(ht,start,end);
+  for (I64 i = 0; i < 1000; ++i) {
+    stack[i] = MAlloc(sizeof(I64)*2);
+    sources[i] = MAlloc(sizeof(I64)*2);
   }
 
-  QSort(mins,len-1,0);
-  for (I64 i = 0; i < len; ++i) {
-    "%d\n",mins[i];
+      "here\n";
+  for (I64 i = 0; i < seeds->cols; i+=2) {
+    stack[i][0] = seeds->data[i];
+    stack[i][1] = seeds->data[i] + seeds->data[i + 1];
+    sp++;
   }
-  return mins[0];
+      "here\n";
+
+  Array *ptr;
+  _arr[0] = HashIdx("seed-to-soil");
+  _arr[1] = HashIdx("soil-to-fertilizer");
+  _arr[2] = HashIdx("fertilizer-to-water");
+  _arr[3] = HashIdx("water-to-light");
+  _arr[4] = HashIdx("light-to-temperature");
+  _arr[5] = HashIdx("temperature-to-humidity");
+  _arr[6] = HashIdx("humidity-to-location");
+
+
+  for (I64 i = 0; i < 7; ++i) {
+    I64 flag = 0;
+    sp2 = 0;
+
+    while (sp > 0) {
+      start = stack[--sp][0];
+      end = stack[sp][1];
+      key = _arr[i];
+      ptr = ht->entries[key];
+      total = ptr->cols*ptr->rows;
+
+      "%ld\n",sp;
+      for (I64 x = 0; x < total; x+= 3) {
+        src = ptr->data[SRC_IDX+x];
+        dst = ptr->data[DST_IDX+x];
+        len = ptr->data[LEN_IDX+x];
+        "dst:%ld src:%ld len:%ld\n",dst,src,len;
+
+        overlap_start =  Max(start,src);
+        overlap_end =  Min(end, src + len);
+
+        if (overlap_start < overlap_end) {
+          StackPush(sources, &sp2,
+              overlap_start - src + dst,
+              overlap_end - src + dst);
+
+          if (overlap_start > start) {
+            StackPush(stack,&sp,start,overlap_start);
+          }
+
+          if (end > overlap_end) {
+            StackPush(stack,&sp,overlap_end,end);
+          }
+          flag = 1;
+          goto break1;
+        }
+      }
+    } 
+break1:
+    if (flag == 0) {
+      StackPush(sources,&sp2,start,end);
+    }
+
+    tmp = stack;
+    stack = sources;
+    sources = tmp;
+    sp = sp2;
+    // sp2 = 0;
+  }
+
+  return 1;
 }
 
 U0 Main(I64 argc, U8 **argv)
 {
   I64 *len;
-  U8 *buffer = FileRead("./input.txt", 50000, &len);
+  U8 *buffer = FileRead("./sample.txt", 50000, &len);
   Ht *ht = ParseInput(buffer);
 //  I64 idx = HashIdx("seeds");
 //  Array *seeds = ht->entries[idx];
  // Array *expanded_seeds = ExpandSeeds(seeds);
 //  "%zu\n",expanded_seeds->cols;
-//  HtScan(ht);
+ HtScan(ht);
   //U64 pt1 = SolvePart1(ht,seeds);
   //"part1:%zu\n",pt1;
-  U64 pt2 = Solve2(ht);
+  U64 pt2 = SolvePart2(ht);
   "part2:%zu\n",pt2;
 }
