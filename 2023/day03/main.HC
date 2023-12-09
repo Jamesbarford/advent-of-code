@@ -31,17 +31,17 @@ I64 DIRS[8] = {
 
 Matrix *MatrixNew(I64 rows, I64 cols)
 {
-  Matrix *m = malloc(sizeof(Matrix));
+  Matrix *m = MAlloc(sizeof(Matrix));
   m->rows = rows;
   m->cols = cols;
-  m->data = malloc(sizeof(I64) * rows * cols);
+  m->data = MAlloc(sizeof(I64) * rows * cols);
   return m;
 }
 
 U0 MatrixFree(Matrix *m)
 {
-  free(m->data);
-  free(m);
+  Free(m->data);
+  Free(m);
 }
 
 Bool InBounds(Matrix *m, I64 x, I64 y)
@@ -248,5 +248,5 @@ U0 Main()
   answer = SolvePart2(m);
   "pt2: %d\n",answer;
   MatrixFree(m);
-  free(buffer);
+  Free(buffer);
 }

@@ -1,5 +1,3 @@
-I64 RGB[3] = {0,0,0};
-
 I64 HashFunction(I64 ch)
 {
   if      (ch == 'r') return 0;
@@ -7,8 +5,7 @@ I64 HashFunction(I64 ch)
   else if (ch == 'b') return 2;
 }
 
-U0 ClearScores()
-{
+U0 ClearScores(I64 *RGB) {
   for (I64 i = 0; i < 3; i++) {
     RGB[i] = 0;
   }
@@ -20,7 +17,7 @@ I64 AtoI(U8 *ptr, I64 *_len)
   I64 num;
   I64 tmp;
 
-  num = 0-1;
+  num = -1;
   len = 0;
   if (*ptr == '\0') {
     goto parsed_number;
@@ -52,16 +49,20 @@ parsed_number:
 U0 Main()
 {
   I64 len;
+  "here\n";
   U8 *buffer = FileRead("./input.txt", 50000, &len);
-  I64 game_id = 0-1;
+  "%s\n=> %d \n",buffer,len;
+  I64 game_id = -1;
   I64 num = 0;
   I64 tmp = 0;
   I64 num_len = 0;
   I64 acc = 0;
   I64 product = 0;
-  ClearScores();
+  I64 RGB[3] = {0,0,0};
+  ClearScores(RGB);
 
   for (U8 *ptr = buffer; *ptr; ptr++) {
+    "%d\n",*ptr;
     num = *ptr - '0';
 
     if (*ptr == 'G') {
@@ -85,7 +86,7 @@ U0 Main()
       "====R:%d G:%d B:%d, product:%d\n", 
           RGB[0], RGB[1], RGB[2], product;
       acc += product;
-      ClearScores();
+      ClearScores(RGB);
     }
   }
   "total:%d\n",acc;

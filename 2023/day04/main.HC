@@ -52,9 +52,8 @@ public I64 GetLine(U8 **_src, U8 *dst)
   }
 
   while (*src && *src != '\n') {
-    *dst = *src;
+    *dst = *src++;
     dst++;
-    src++;
   }
 
   if (*src == '\n') {
@@ -180,7 +179,8 @@ public U64 SolvePart1(U8 *ptr)
     LineToCard(card,line);
     total += GetCardScore(card,NULL);
   }
-  Free(card);
+
+  CardFree(card);
   return total;
 }
 
@@ -209,7 +209,7 @@ public U64 SolvePart2(U8 *ptr)
     total += cardcounts[i];
   }
 
-  Free(card);
+  CardFree(card);
   return total;
 }
 
