@@ -16,3 +16,4 @@ config
 *.ll
 input.txt
 sample.txt
+*.s

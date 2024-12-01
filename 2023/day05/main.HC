@@ -2,6 +2,7 @@
 #define LINE_LEN        512
 #define ARRAY_SIZE      200
 #define TUPLE_SIZE      3
+#define MAX_THREADS     32
 
 #define LEN_IDX  2
 #define DST_IDX  0
@@ -14,6 +15,7 @@ class Array
   I64 rows;
   I64 cols;
 };
+
 
 class Tuple
 {
@@ -79,7 +81,7 @@ U64 HashIdx(U8 *key)
   U8 *s = key;
   I64 len = StrLen(key);
   h = HashFunction(key,len);
-  return h & HT_SIZE-1;
+  return h & (HT_SIZE-1);
 }
 
 U0 HtSet(Ht *ht, U8 *key, Array *arr)
@@ -244,7 +246,7 @@ Ht *ParseInput(U8 *buffer)
       if (!StrNCmp(key,"seeds",5)) {
         arr = ArrayNew(key,100,100);
         lptr += 2;
-        ParseNumbersUntil(arr->data,&(arr->cols),lptr,'\0');
+        ParseNumbersUntil(arr->data,&arr->cols,lptr,'\0');
         arr->rows = 1;
         HtSet(ht,key,arr);
       } else {
@@ -256,7 +258,7 @@ Ht *ParseInput(U8 *buffer)
   return ht;
 }
 
-U0 QSort(I64 *arr, I64 high, I64 low)
+U0 QSort(I64 *arr, I64 high, I64 low=0)
 { // Simple quick sort
   if (low < high) {
     I64 pivot = arr[high];
@@ -341,14 +343,14 @@ done:
 U64 GetNextLocation(Array *ptr, I64 seed)
 {
   U64 src,dst,len,r1,r2,total;
-  total = ptr->rows * ptr->cols;
+  total = (ptr->rows) * (ptr->cols);
   for (U64 row = 0; row < total; row += 3) {
     src = ptr->data[SRC_IDX+row];
     dst = ptr->data[DST_IDX+row];
     len = ptr->data[LEN_IDX+row];
     r1 = src + len;
     r2 = dst + len;
-    if (src <= seed <= r1) {
+    if (seed >= src && seed <= r1) {
       seed -= src;
       seed += dst;
       return seed;
@@ -380,106 +382,97 @@ U0 StackPush(U64 **_arr, I64 *_sp, U64 num1, U64 num2)
   *_sp = sp;
 }
 
+class ThreadCtx
+{
+  U64 start;
+  U64 end;
+  U64 min;
+  U64 id;
+  Ht *ht;
+  I64 thread_;
+};
+
+U0 *ThreadRunner(ThreadCtx *ctx)
+{
+  "Thread: %zu\n",ctx->id;
+  U64 arr[7];
+  U64 s1,min,range,key;
+  Array *ptr;
+  
+  range = ctx->end - ctx->start;
+  min = 4294967295;
+  arr[0] = HashIdx("seed-to-soil");
+  arr[1] = HashIdx("soil-to-fertilizer");
+  arr[2] = HashIdx("fertilizer-to-water");
+  arr[3] = HashIdx("water-to-light");
+  arr[4] = HashIdx("light-to-temperature");
+  arr[5] = HashIdx("temperature-to-humidity");
+  arr[6] = HashIdx("humidity-to-location");
+
+  for (I64 seed = ctx->start; seed <= ctx->end; ++seed) {
+    s1 = seed;
+    for (I64 idx = 0; idx < 7; ++idx) {
+      key = arr[idx];
+      ptr = ctx->ht->entries[key];
+      s1 = GetNextLocation(ptr,s1);
+    }
+    if (s1 < min) {
+      min = s1;
+    }
+  }
+  "THREAD: %zu min -> %zu\n",ctx->id,min;
+  ctx->min = min;
+  return NULL;
+}
 
 U64 SolvePart2(Ht *ht)
 {
-  I64 min, sp = 0, sp2 = 0,src,dst,len,start,end,
-      overlap_end,overlap_start,idx, key, _arr[7], total;
-  idx = HashIdx("seeds");
+  I64 idx = HashIdx("seeds");
+  "idx=>%ld\n",idx;
   Array *seeds = ht->entries[idx];
-  U64 **stack = MAlloc(sizeof(Tuple *) * 1000);
-  U64 **sources = MAlloc(sizeof(Tuple *) * 1000);
-  U64 **tmp = MAlloc(sizeof(Tuple *) * 1000);
-  Array *ptr;
+  I64 start,end,len,id,thread_;
+  U64 min;
+  I64 *mins = MAlloc(sizeof(I64) * 5000);
 
-  for (I64 i = 0; i < 1000; ++i) {
-    stack[i] = MAlloc(sizeof(I64)*2);
-    sources[i] = MAlloc(sizeof(I64)*2);
+  ThreadCtx *contexts;
+  ThreadCtx *ctx;
+  
+  id = start = end = len = 0;
+  contexts = MAlloc(sizeof(ThreadCtx) * MAX_THREADS);
+  ctx = NULL;
+
+  "cols: %d\n",seeds->cols;
+  for (I64 i = 0; i < seeds->cols; i += 2) {
+    ctx = &contexts[id];
+    id++;
+    ctx->id = id;
+    ctx->start = seeds->data[i];
+    ctx->end = ctx->start + seeds->data[i + 1];
+    ctx->ht = ht;
+    ctx->min = 9223372036854775807;
+    thread_ = ThreadNew(ThreadRunner,ctx);
+    ctx->thread_ = thread_;
   }
 
-      "here\n";
-  for (I64 i = 0; i < seeds->cols; i+=2) {
-    stack[i][0] = seeds->data[i];
-    stack[i][1] = seeds->data[i] + seeds->data[i + 1];
-    sp++;
+  for (I64 i = 0; i < id; ++i) {
+    ThreadJoin(contexts[i].thread_);
   }
-      "here\n";
 
-  Array *ptr;
-  _arr[0] = HashIdx("seed-to-soil");
-  _arr[1] = HashIdx("soil-to-fertilizer");
-  _arr[2] = HashIdx("fertilizer-to-water");
-  _arr[3] = HashIdx("water-to-light");
-  _arr[4] = HashIdx("light-to-temperature");
-  _arr[5] = HashIdx("temperature-to-humidity");
-  _arr[6] = HashIdx("humidity-to-location");
-
-
-  for (I64 i = 0; i < 7; ++i) {
-    I64 flag = 0;
-    sp2 = 0;
-
-    while (sp > 0) {
-      start = stack[--sp][0];
-      end = stack[sp][1];
-      key = _arr[i];
-      ptr = ht->entries[key];
-      total = ptr->cols*ptr->rows;
-
-      "%ld\n",sp;
-      for (I64 x = 0; x < total; x+= 3) {
-        src = ptr->data[SRC_IDX+x];
-        dst = ptr->data[DST_IDX+x];
-        len = ptr->data[LEN_IDX+x];
-        "dst:%ld src:%ld len:%ld\n",dst,src,len;
-
-        overlap_start =  Max(start,src);
-        overlap_end =  Min(end, src + len);
-
-        if (overlap_start < overlap_end) {
-          StackPush(sources, &sp2,
-              overlap_start - src + dst,
-              overlap_end - src + dst);
-
-          if (overlap_start > start) {
-            StackPush(stack,&sp,start,overlap_start);
-          }
-
-          if (end > overlap_end) {
-            StackPush(stack,&sp,overlap_end,end);
-          }
-          flag = 1;
-          goto break1;
-        }
-      }
-    } 
-break1:
-    if (flag == 0) {
-      StackPush(sources,&sp2,start,end);
+  min = 9223372036854775807;
+  for (I64 i = 0; i < id; ++i) {
+    ctx = &contexts[i];
+    if (ctx->min < min) {
+      min = ctx->min;
     }
-
-    tmp = stack;
-    stack = sources;
-    sources = tmp;
-    sp = sp2;
-    // sp2 = 0;
   }
-
-  return 1;
+  return min;
 }
 
 U0 Main(I64 argc, U8 **argv)
 {
-  I64 *len;
-  U8 *buffer = FileRead("./sample.txt", 50000, &len);
+  I64 len;
+  U8 *buffer = FileRead("./input.txt", 50000, &len);
   Ht *ht = ParseInput(buffer);
-//  I64 idx = HashIdx("seeds");
-//  Array *seeds = ht->entries[idx];
- // Array *expanded_seeds = ExpandSeeds(seeds);
-//  "%zu\n",expanded_seeds->cols;
- HtScan(ht);
-  //U64 pt1 = SolvePart1(ht,seeds);
-  //"part1:%zu\n",pt1;
   U64 pt2 = SolvePart2(ht);
   "part2:%zu\n",pt2;
 }

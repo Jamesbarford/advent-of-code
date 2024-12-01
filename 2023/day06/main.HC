@@ -65,8 +65,6 @@ I64 Part1(U8 *ptr, I64 len)
     "%d\n",counts[i];
     acc *= counts[i];
   }
-  "part1: %ld\n",acc;
-
   return acc;
 }
 
@@ -118,7 +116,7 @@ U64 Part2(U8 *ptr)
     count = 0;
   }
 
-  for (U64 i = 0; i < len; ++i) {
+  for (I64 i = 0; i < len; ++i) {
     "%d\n",counts[i];
     acc *= counts[i];
   }
@@ -129,9 +127,12 @@ U0 Main()
 {
   I64 len,pt1,pt2;
   U8 *buffer  = FileRead("./input.txt", 4000, &len);
+  U8 *ptr = buffer;
   len = NumbersInLine(buffer);
+
   pt1 = Part1(buffer,len);
-  pt2 = Part2(buffer,len);
   "part1: %ld\n",pt1;
-  "part2: %zu\n",pt2;
+  pt2 = Part2(buffer);
+  "part2: %ld\n",pt2;
+  Free(buffer);
 }

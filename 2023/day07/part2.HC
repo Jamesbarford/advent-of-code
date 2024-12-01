@@ -25,7 +25,7 @@ class Array
   Hand **hands;
 };
 
-U0 QSort(I64 *arr, I64 high, I64 low)
+U0 QSort(I64 *arr, I64 high, I64 low=0)
 { // Simple quick sort
   if (low < high) {
     I64 pivot = arr[high];
@@ -100,7 +100,7 @@ U64 RankHand(Hand *h)
     arr[i] = h->cards[i];
   }
 
-  QSort(arr, DECK-1,0);
+  QSort(arr, DECK-1);
 
   if      (arr[0] == 5) h->type = FIVE_KIND;
   else if (arr[0] == 4) h->type = FOUR_KIND;
@@ -144,7 +144,7 @@ U64 HandCmp(Hand *h1, Hand *h2)
   return 1;
 }
 
-U0 QSortHands(Array *arr, I64 high, I64 low)
+U0 QSortHands(Array *arr, I64 high, I64 low=0)
 {
   if (low < high) {
     Hand *pivot;
@@ -170,7 +170,7 @@ U0 QSortHands(Array *arr, I64 high, I64 low)
     arr->hands[high] = arr->hands[idx];
     arr->hands[idx] = pivot;
 
-    QSortHands(arr,idx - 1,low);
+    QSortHands(arr,idx - 1);
     QSortHands(arr,high, idx + 1);
   }
 }

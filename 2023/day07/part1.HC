@@ -55,7 +55,7 @@ U64 HandCmp(Hand *h1, Hand *h2)
   return 1;
 }
 
-U0 QSortHands(Array *arr, I64 high, I64 low)
+U0 QSortHands(Array *arr, I64 high, I64 low=0)
 { // Simple quick sort
   if (low < high) {
     Hand *pivot;
@@ -256,7 +256,7 @@ Hand **SolvePart1(U8 *ptr)
     arr->hands[arr->len++] = h;
   }
 
-  QSortHands(arr, arr->len-1,0);
+  QSortHands(arr, arr->len-1);
 
   "SORTED\n";
   for (I64 i = 0; i < arr->len; ++i) {
