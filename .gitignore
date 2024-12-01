@@ -17,3 +17,4 @@ config
 input.txt
 sample.txt
 *.s
+*.swp
