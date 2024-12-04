@@ -10,9 +10,21 @@ Bool IsSafeDiff(I64 i1, I64 i2)
   return abs_diff <= 3;
 }
 
-#define START 0
-#define ASC   1
-#define DESC  2
+#define START -1
+#define ASC   0
+#define DESC  1
+
+U0 PrintVec(IntVec *vec)
+{
+  "[";
+  for (I64 i = 0; i < vec->size; ++i) {
+    "%d",vec->entries[i];
+    if (i+1!=vec->size) {
+      ", ";
+    }
+  }
+  "]\n";
+}
 
 Bool IsSafe(IntVec *vec)
 {
@@ -106,9 +118,24 @@ I64 Part1(U8 *buffer)
   return acc;
 }
 
-Bool IsSafePart2()
+U0 VecCpy(IntVec *vec, IntVec *cpy, I64 skip_idx)
 {
+  for (I64 i = 0; i < vec->size; ++i) {
+    if (i == skip_idx) continue;
+    IntVecPush(cpy,vec->entries[i]);
+  }
+}
 
+Bool IsSafePt2(IntVec *vec, IntVec *cpy)
+{
+  if (IsSafe(vec)) return TRUE;
+
+  IntVecClear(cpy);
+  for (I64 i = 0; i < vec->size; ++i) {
+    VecCpy(vec,cpy,i);
+    if (IsSafe(cpy)) return TRUE;
+    IntVecClear(cpy);
+  }
   return FALSE;
 }
 
@@ -118,6 +145,7 @@ I64 Part2(U8 *buffer)
   U8 *ptr = buffer;
   U8 *tmp_ptr = tmp;
   IntVec *vec = IntVecNew;
+  IntVec *cpy = IntVecNew;
   I64 acc = 0;
 
   while (*ptr) {
@@ -126,8 +154,9 @@ I64 Part2(U8 *buffer)
       *tmp_ptr = '\0';
       IntVecClear(vec);
       ParseLine(tmp,vec);
-      /* XXX: Solve part2 */
-
+      if (IsSafePt2(vec,cpy)) {
+        acc++;
+      }
       tmp_ptr = tmp;
       ptr++;
     }
@@ -139,8 +168,8 @@ I64 Part2(U8 *buffer)
 
 U0 Main(U0)
 {
-  U8 *buffer = FileRead("./.txt");
-  "%d\n", Part1(buffer);
-  "%d\n", Part2(buffer);
+  U8 *buffer = FileRead("./input.txt");
+  "part1: %d\n", Part1(buffer);
+  "part2: %d\n", Part2(buffer);
   Free(buffer);
 }
