@@ -6,6 +6,9 @@ There might be splatterings of other languages but for most of the years the cod
 | Day | PT1 | PT2 |
 | --- | ---- | ---- |
 | [1](https://adventofcode.com/2024/day/1) | ⭐ | ⭐ |
+| [2](https://adventofcode.com/2024/day/2) | ⭐ | ⭐ |
+| [3](https://adventofcode.com/2024/day/3) | ⭐ | ⭐ |
+| [4](https://adventofcode.com/2024/day/4) | ⭐ | ⭐ |
 
 ## Building 🎅🏻
 For the less esoteric languages a `c` compiler will suffice
