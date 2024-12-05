@@ -115,6 +115,7 @@ U0 PrinterRulesPrint(PrinterRules *rules)
   for (IntVec *vec : rules) {
     PrintVec(vec);
   }
+  "\n\n";
 }
 
 Bool IntVecHas(IntVec *vec, I64 needle)
@@ -128,28 +129,33 @@ Bool IntVecHas(IntVec *vec, I64 needle)
 /* IntSet would be better than IntVec */
 I64 Part1(PrinterRules *rules)
 {
-  I64 acc = 0, rule = 0, rule_idx = 0, ok = 0;
+  I64 acc = 0, rule = 0, next_rule, rule_idx = 0, ok = 0;
   IntVec *indexes = IntVecNew;
   
   for (I64 idx = 0; idx < rules->size; ++idx) {
     IntVec *vec = rules->entries[idx];
+    PrintVec(vec);
+    ok = 0;
+    rule_idx = 0;
 
-    while (rule_idx < vec->size) {
+    while (1) {
       rule = vec->entries[rule_idx];
       IntVec *pages = IntMapGet(rules->map, rule);
-      I64 i;
-      if (!IntVecHas(pages,
-      for (i = 0; i < pages->size; ++i) {
-        if (!IntVecHas(pages,vec->entries[i])) {
-          break;
-        }
+      rule_idx++;
+      /* We are at the end */
+      if (rule_idx >= vec->size) {
+        ok=1;
+        break;
       }
-      if (i+1 == vec->size;) {
-        ok++;
+      next_rule = vec->entries[rule_idx];
+      if (!IntVecHas(pages,next_rule)) {
+        "rule: %d next_rule:%d\n",rule,next_rule;
+        break;
       }
       rule_idx++;
     }
-    if (ok == vec->size) {
+
+    if (ok) {
       IntVecPush(indexes,idx);
     }
   }
@@ -166,6 +172,7 @@ U0 Main()
     Exit;
   }
   PrinterRules *rules = Parse(buffer);
+  PrinterRulesPrint(rules);
 
   "Part1: %d\n", Part1(rules);
 
