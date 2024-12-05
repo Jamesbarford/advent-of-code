@@ -6,16 +6,16 @@ class PrinterRules
   I64 size;
 };
 
-U8 *IntVecToString(IntVec *vec)
+auto IntVecToString(IntVec *vec)
 {
-  U8 *buf = MAlloc(sizeof(U8)*64);
-  U8 *dst = buf;
   U8 tmp[64];
+  U8 *buf = MAlloc(sizeof(U8)*64);
+  auto dst = buf;
 
   SPutChar(&dst,'[',&buf);
-  for (I64 i = 0; i < vec->size; ++i) {
-    I64 num = vec->entries[i];
-    I64 len = snprintf(tmp,sizeof(tmp),"%lld",num);
+  for (auto i = 0; i < vec->size; ++i) {
+    auto num = vec->entries[i];
+    auto len = snprintf(tmp,sizeof(tmp),"%lld",num);
     tmp[len] = '\0';
     OutStr(tmp,&buf,&dst);
     if (i+1 != vec->size) {
@@ -28,7 +28,7 @@ U8 *IntVecToString(IntVec *vec)
 
 U0 PrintVec(IntVec *vec)
 {
-  U8 *str = IntVecToString(vec);
+  auto str = IntVecToString(vec);
   "%s\n",str;
   Free(str);
 }
@@ -38,9 +38,9 @@ PrinterRules *Parse(U8 *buffer)
   PrinterRules *pr = MAlloc(sizeof(PrinterRules));
   U8 tmp[64];
   U8 *ptr = buffer, *tmp_ptr;
-  I64 state = 0, key = 0, value = 0, capacity = 32, size = 0;
-  IntMap *map = IntMapNew;
-  IntMap *reverse_map = IntMapNew;
+  auto state = 0, key = 0, value = 0, capacity = 32, size = 0;
+  auto map = IntMapNew;
+  auto reverse_map = IntMapNew;
   IntVec **entries = MAlloc(sizeof(IntVec *)*capacity);
   IntVec *vec = NULL;
 
@@ -124,7 +124,7 @@ U0 PrinterRulesRelease(PrinterRules *pr)
 {
   IntMapRelease(pr->map);
   IntMapRelease(pr->reverse_map);
-  for (IntVec *vec : pr) {
+  for (auto vec : pr) {
     IntVecRelease(vec);
   }
   Free(pr->entries);
@@ -134,7 +134,7 @@ U0 PrinterRulesRelease(PrinterRules *pr)
 U0 PrinterRulesPrint(PrinterRules *rules)
 {
   "Order map:\n";
-  for (I64 i = 0; i < rules->map->indexes->size; ++i) {
+  for (auto i = 0; i < rules->map->indexes->size; ++i) {
     IntMapNode *n = rules->map->entries[rules->map->indexes->entries[i]];
     IntVec *vec = n->value(IntVec *);
     "%d => ",n->key;
@@ -142,9 +142,9 @@ U0 PrinterRulesPrint(PrinterRules *rules)
   }
 
   "Reverse order map:\n";
-  for (I64 i = 0; i < rules->reverse_map->indexes->size; ++i) {
-    IntMapNode *n = rules->reverse_map->entries[rules->reverse_map->indexes->entries[i]];
-    IntVec *vec = n->value(IntVec *);
+  for (auto i = 0; i < rules->reverse_map->indexes->size; ++i) {
+    auto n = rules->reverse_map->entries[rules->reverse_map->indexes->entries[i]];
+    auto vec = n->value(IntVec *);
     "%d => ",n->key;
     PrintVec(vec);
   }
@@ -156,25 +156,25 @@ U0 PrinterRulesPrint(PrinterRules *rules)
   "\n\n";
 }
 
-Bool IntVecHas(IntVec *vec, I64 needle)
+auto IntVecHas(IntVec *vec, I64 needle)
 {
-  for (I64 it : vec) {
+  for (auto it : vec) {
     if (it == needle) return TRUE;
   }
   return FALSE;
 }
 
-Bool IsOrdered(PrinterRules *rules, IntVec *vec, I64 *_bad_idx=NULL)
+auto IsOrdered(PrinterRules *rules, IntVec *vec, I64 *_bad_idx=NULL)
 {
-  I64 rule_idx = 0;
-  Bool ok = FALSE;
+  auto rule_idx = 0;
+  auto ok = FALSE;
 
   while (rule_idx < vec->size) {
-    I64 rule = vec->entries[rule_idx];
-    IntVec *pages = IntMapGet(rules->map, rule);
+    auto rule = vec->entries[rule_idx];
+    auto pages = IntMapGet(rules->map, rule);
     ok = FALSE;
 
-    I64 i = rule_idx+1;
+    auto i = rule_idx+1;
     for (; i < vec->size; ++i) {
       I64 next_rule = vec->entries[i];
       IntVec *reverse = IntMapGet(rules->reverse_map, next_rule);
@@ -204,13 +204,13 @@ out:
   return ok;
 }
 
-IntVec *GetOrder(PrinterRules *rules, Bool incorrect=FALSE)
+auto GetOrder(PrinterRules *rules, Bool incorrect=FALSE)
 {
-  IntVec *indexes = IntVecNew;
+  auto indexes = IntVecNew;
   
-  for (I64 idx = 0; idx < rules->size; ++idx) {
-    IntVec *vec = rules->entries[idx];
-    Bool ok = IsOrdered(rules,vec,NULL);
+  for (auto idx = 0; idx < rules->size; ++idx) {
+    auto vec = rules->entries[idx];
+    auto ok = IsOrdered(rules,vec,NULL);
 
     if (!incorrect && ok) {
       IntVecPush(indexes,idx);
@@ -226,28 +226,27 @@ IntVec *GetOrder(PrinterRules *rules, Bool incorrect=FALSE)
 
 U0 Swap(IntVec *vec, I64 i1, I64 i2)
 {
-  I64 tmp = vec->entries[i1];
+  auto tmp = vec->entries[i1];
   vec->entries[i1] = vec->entries[i2];
   vec->entries[i2] = tmp;
 }
 
 U0 ReOrder(PrinterRules *rules, IntVec *unordered)
 {
-  I64 bad_idx = -1;
-  I64 idx = 0;
+  auto bad_idx = -1, idx = 0;
   while (!IsOrdered(rules,unordered,&bad_idx)) {
     Swap(unordered,bad_idx,idx);
     idx = (idx + 1) % unordered->size;
   }
 }
 
-I64 Part1(PrinterRules *rules)
+auto Part1(PrinterRules *rules)
 {
   auto indexes = GetOrder(rules);
   auto acc = 0;
  
-  for (I64 idx : indexes) {
-    IntVec *vec = rules->entries[idx];
+  for (auto idx : indexes) {
+    auto vec = rules->entries[idx];
     acc += vec->entries[vec->size/2];
   }
 
@@ -255,13 +254,13 @@ I64 Part1(PrinterRules *rules)
   return acc;
 }
 
-I64 Part2(PrinterRules *rules)
+auto Part2(PrinterRules *rules)
 {
   auto indexes = GetOrder(rules,TRUE);
   auto acc = 0;
 
-  for (I64 idx : indexes) {
-    IntVec *vec = rules->entries[idx];
+  for (auto idx : indexes) {
+    auto vec = rules->entries[idx];
     ReOrder(rules,vec);
     acc += vec->entries[vec->size/2];
   }
@@ -269,9 +268,9 @@ I64 Part2(PrinterRules *rules)
   return acc;
 }
 
-U0 Main(U0)
+auto Main()
 {
-  U8 *buffer = FileRead("./input.txt");
+  auto buffer = FileRead("./input.txt");
   if (buffer == NULL) {
     "buf Null!\n";
     Exit;
