@@ -6,3 +6,4 @@
 | [2](https://adventofcode.com/2024/day/2) | ⭐ | ⭐ |
 | [3](https://adventofcode.com/2024/day/3) | ⭐ | ⭐ |
 | [4](https://adventofcode.com/2024/day/4) | ⭐ | ⭐ |
+| [5](https://adventofcode.com/2024/day/5) | ⭐ | ⭐ |
