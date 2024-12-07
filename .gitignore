@@ -16,5 +16,6 @@ config
 *.ll
 input.txt
 sample.txt
+example.txt
 *.s
 *.swp
