@@ -121,18 +121,6 @@ Bool OutOfBounds(Board *board, Coord *c)
             c->x < 0 || c->x >= board->width);
 }
 
-I64 Abs(I64 x)
-{
-  if (x < 0) return -x;
-  return x;
-}
-
-I64 Gcd(I64 a, I64 b)
-{
-    if (b == 0) return a;
-    return Gcd(b, a % b);
-}
-
 U0 CoordVecPrint(IntVec *vec)
 {
   Coord c;

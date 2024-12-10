@@ -1,9 +1,3 @@
-I64 Abs(I64 i)
-{
-  if (i > 0) return i;
-  return -i;
-}
-
 Bool IsSafeDiff(I64 i1, I64 i2)
 {
   I64 abs_diff = Abs(i1 - i2);

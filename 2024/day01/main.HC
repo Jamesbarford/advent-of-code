@@ -47,12 +47,6 @@ DiffLists *ParseInput(U8 *buffer)
   return dl;
 }
 
-I64 Abs(I64 num)
-{
-  if (num > 0) return num;
-  return -num;
-}
-
 I64 Part1(DiffLists *dl)
 {
   IntVecSort(dl->vec1);
