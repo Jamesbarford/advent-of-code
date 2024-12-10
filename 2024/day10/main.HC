@@ -1,21 +1,13 @@
 U0 Measure(U8 *buffer, I64 *_width, I64 *_height)
 {
-  U8 *ptr = buffer;
-  I64 width = 0;
-  I64 height = 0;
-
-  while (*ptr != '\n') ptr++;
-
-  width = ptr-buffer;
-
-  ptr = buffer;
-  while (*ptr) {
-    if (*ptr == '\n') height++;
-    ptr++;
+  for (U8 *ptr = buffer; *ptr != '\n'; ptr++) {
+    (*_width)++;
   }
-
-  *_width = width;
-  *_height = height;
+  for (U8 *ptr = buffer; *ptr; ptr++) {
+    if (*ptr == '\n') {
+      (*_height)++;
+    }
+  }
 }
 
 class Board
@@ -23,14 +15,6 @@ class Board
   U8 **rows;
   I64 width, height;
 };
-
-class Coord
-{
-  U8 ch;
-  I64 x;
-  I64 y;
-};
-
 
 U0 BoardRelease(Board *board)
 {
@@ -98,7 +82,6 @@ U0 UnHashXY(U64 hash, I64 *_y, I64 *_x, I64 *_num, I64 *_cnt)
   *_num = hash >> 8 & 0xFF;
   *_cnt = hash & 0xFF;
 }
-
 
 U0 QueueAll(Board *board, List * Q, I64 y, I64 x, I64 num, I64 cnt)
 {
