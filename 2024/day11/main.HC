@@ -54,22 +54,22 @@ I64 IntKeyCmp(U0 *k1, U0 *k2)
   return 0;
 }
 
-IntTree *IntTreeNew(U0)
+inline IntTree *IntTreeNew(U0)
 {
   return RBTreeNew(NULL,NULL,&IntKeyCmp);
 }
 
-U0 IntTreeInsert(IntTree *tree, I64 key, I64 value)
+inline U0 IntTreeInsert(IntTree *tree, I64 key, I64 value)
 {
   RBTreeInsert(tree,key(U0*),value(U0*));
 }
 
-I64 IntTreeGet(IntTree *tree, I64 key)
+inline I64 IntTreeGet(IntTree *tree, I64 key)
 {
   return RBTreeGet(tree,key(U0*))(I64);
 }
 
-Bool IntTreeHas(IntTree *tree, I64 key)
+inline Bool IntTreeHas(IntTree *tree, I64 key)
 {
   return RBTreeHas(tree,key(U0*));
 }
