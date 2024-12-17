@@ -14,3 +14,4 @@
 | [10](https://adventofcode.com/2024/day/10) | ⭐ | ⭐ |
 | [11](https://adventofcode.com/2024/day/11) | ⭐ | ⭐ |
 | [12](https://adventofcode.com/2024/day/12) | ⭐ | ⭐ |
+| [13](https://adventofcode.com/2024/day/13) | ⭐ | ⭐ |
