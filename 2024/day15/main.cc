@@ -3,11 +3,24 @@
 #include <string.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <stdarg.h>
+#include <errno.h>
 
 #include <vector>
 
 #define MAX_ROWS 100
 #define MAX_COLS 100
+
+void panic(const char *fmt, ...) {
+    char buf[BUFSIZ];
+    va_list ap;
+    va_start(ap,fmt);
+    auto len = vsnprintf(buf,sizeof(buf),fmt,ap);
+    buf[len] = '\0';
+    fprintf(stderr, "%s", buf);
+    va_end(ap);
+    exit(EXIT_FAILURE);
+}
 
 // Movement directions: Up, Down, Left, Right
 static const int dirs[][2] = {
@@ -97,13 +110,17 @@ char *readFile(const char *path) {
     long len = lseek(fd,0,SEEK_END);
     lseek(fd,0,SEEK_SET);
 
-    char *buf = (char *)malloc(sizeof(char)*len);
+    char *buf = new char[len + 10];
+    if (buf == NULL) {
+        panic("Cannot allocate buffer of size: %ld - \"%s\"\n", len, strerror(errno));
+    }
     read(fd,buf,len);
+    buf[len] = '\0';
     close(fd);
     return buf;
 }
 
-RobotMap *parse(char *buffer) {
+RobotMap *parse1(char *buffer) {
     int state = 0, x = 0, y = 0;
     char *ptr = buffer;
     RobotMap *map = new RobotMap();
@@ -135,14 +152,71 @@ RobotMap *parse(char *buffer) {
     return map;
 }
 
+RobotMap *parse2(char *buffer) {
+    int state = 0, x = 0, y = 0;
+    char *ptr = buffer;
+    RobotMap *r = new RobotMap();
+    while (1) {
+        if (*ptr == '\n'  && *(ptr+1) == '\n') {
+            r->BY++;
+            ptr += 2;
+            break;
+        }
+        if (*ptr == '\n') {
+            r->BX = 0;
+            r->BY++;
+            ptr++;
+        }
+
+
+        switch (*ptr) {
+            case '#': {
+                r->grid[r->BY][r->BX++] = '#';
+                r->grid[r->BY][r->BX++] = '#';
+                break;
+            }
+            case '.': {
+                r->grid[r->BY][r->BX++] = '.';
+                r->grid[r->BY][r->BX++] = '.';
+                break;
+            }    
+            case 'O': {
+                r->grid[r->BY][r->BX++] = '[';
+                r->grid[r->BY][r->BX++] = ']';
+                break;
+            }
+            case '@': {
+                r->grid[r->BY][r->BX++] = '@';
+                r->grid[r->BY][r->BX++] = '.';
+                r->RX = r->BX;
+                r->RY = r->BY;
+                break;
+            }
+        }
+        ptr++;
+    }
+
+    while (1) {
+        if (*ptr == '\n') ptr++;
+        if (*ptr == '\0') break;
+        r->moves.push_back(*ptr++);
+    }
+
+    return r;
+}
+
 
 int main() {
-    char *buffer = readFile("./input.txt");
-    auto robot = parse(buffer);
-    printf("Part1: %ld\n", robot->Part1());
+    char *buffer = readFile("./example.txt");
+    auto robot1 = parse1(buffer);
+    auto robot2 = parse2(buffer);
+    printf("Part1: %ld\n", robot1->Part1());
 
-    free(buffer);
 
-    delete robot;
+    robot2->PrintGrid();
+
+    delete robot1;
+    delete robot2;
+    delete buffer;
     return 0;
 }
