@@ -86,21 +86,115 @@ struct RobotMap {
         RY += DY;
     }
 
-    ssize_t Part1(void) {
-        for (char ch : moves) {
-            int D = getDirection(ch);
-            Walk(dirs[D][0],dirs[D][1]);
-        }
-
+    ssize_t CountGps(char ch) {
         ssize_t acc = 0;
         for (int y = 0; y < BY; y++) {
             for (int x = 0; x < BX; x++) {
-                if (grid[y][x] == 'O') {
+                if (grid[y][x] == ch) {
                     acc += (100 * y) + x;
                 }
             }
         }
         return acc;
+    } 
+
+    ssize_t Part1(void) {
+        for (char ch : moves) {
+            int D = getDirection(ch);
+            Walk(dirs[D][0],dirs[D][1]);
+        }
+        return CountGps('O');
+    }
+
+
+    bool CanMoveBoxVertical(int boxY, int boxX, int DY) {
+        if (grid[boxY][boxX] == ']') {
+            boxX -= 1;
+        }
+
+        auto future_row = boxY + DY;
+        auto future_spot_left = grid[future_row][boxX];
+        auto future_spot_right = grid[future_row][boxX + 1];
+
+        if (future_spot_left == '#' || future_spot_right == '#') return false;
+
+        if (future_spot_left == '[' || future_spot_left == ']') {
+            if (!CanMoveBoxVertical(future_row,boxX,DY)) return false;
+        }
+
+        if (future_spot_right == '[') {
+            if (!CanMoveBoxVertical(future_row,boxX+1,DY)) return false;
+        }
+
+        return true;
+    }
+
+    void MoveBoxVertical(int boxY, int boxX, int DY) {
+        if (grid[boxY][boxX] == ']') {
+            boxX -= 1;
+        }
+        auto future_row = boxY + DY;
+        auto future_spot_left = grid[future_row][boxX];
+        auto future_spot_right = grid[future_row][boxX + 1];
+
+        if (future_spot_left == '[' || future_spot_left == ']') MoveBoxVertical(future_row,boxX,DY);
+        if (future_spot_right == '[') MoveBoxVertical(future_row,boxX+1,DY);
+
+        grid[boxY][boxX] = '.';
+        grid[boxY][boxX+1] = '.';
+
+        grid[future_row][boxX] = '[';
+        grid[future_row][boxX + 1] = ']';
+    }
+
+    void WalkVertical(int DY) {
+        auto future_row = RY + DY;
+        auto next = grid[future_row][RX];
+        if (next == '#') return;
+        if (next == '.') {
+            grid[RY][RX] = '.';
+            RY = future_row;
+            grid[RY][RX] = '@';
+            return;
+        }
+
+        if (!CanMoveBoxVertical(future_row,RX,DY)) return;
+        MoveBoxVertical(future_row,RX,DY);
+        grid[RY][RX] = '.';
+        RY = future_row;
+        grid[RY][RX] = '@';
+    }
+
+    void WalkHorizontal(int DX) {
+        auto future_col = RX;
+        while (1) {
+            future_col += DX;
+            auto next = grid[RY][future_col];
+            if (next == '#') return;
+            if (next == '.') break;
+        }
+
+        while (1) {
+            auto PX = future_col - DX;
+            grid[RY][future_col] = grid[RY][PX];
+            future_col = PX;
+            if (future_col == RX) break;
+        }
+
+        grid[RY][RX] = '.';
+        RX += DX;
+    }
+
+    ssize_t Part2(void) {
+        for (const auto dir : moves) {
+            switch (dir) {
+                case '^': WalkVertical(-1); break;
+                case 'v': WalkVertical(1); break;
+                case '>': WalkHorizontal(1); break;
+                case '<': WalkHorizontal(-1); break;
+            }
+        }
+        return CountGps('[');
     }
 };
 
@@ -186,10 +280,10 @@ RobotMap *parse2(char *buffer) {
                 break;
             }
             case '@': {
-                r->grid[r->BY][r->BX++] = '@';
-                r->grid[r->BY][r->BX++] = '.';
                 r->RX = r->BX;
                 r->RY = r->BY;
+                r->grid[r->BY][r->BX++] = '@';
+                r->grid[r->BY][r->BX++] = '.';
                 break;
             }
         }
@@ -207,13 +301,12 @@ RobotMap *parse2(char *buffer) {
 
 
 int main() {
-    char *buffer = readFile("./example.txt");
+    char *buffer = readFile("./input.txt");
     auto robot1 = parse1(buffer);
     auto robot2 = parse2(buffer);
+
     printf("Part1: %ld\n", robot1->Part1());
-
-
-    robot2->PrintGrid();
+    printf("Part2: %ld\n", robot2->Part2());
 
     delete robot1;
     delete robot2;
