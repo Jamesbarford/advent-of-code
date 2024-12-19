@@ -4,73 +4,94 @@
 #include <unistd.h>
 #include <fcntl.h>
 
+#include <vector>
+
 #define MAX_ROWS 100
 #define MAX_COLS 100
 
-char grid[MAX_ROWS][MAX_COLS];
-char *input_moves;
-int moves = 0;
-int rows, cols;
-int RX, RY;
-
 // Movement directions: Up, Down, Left, Right
-int dx[] = {-1, 1, 0, 0};
-int dy[] = {0, 0, -1, 1};
+static const int dirs[][2] = {
+    {-1,0},
+    {1, 0},
+    {0,-1},
+    {0, 1},
+};
 
-// Direction map: '^' -> 0, 'v' -> 1, '<' -> 2, '>' -> 3
-int getDirection(char c) {
-    if (c == '^') return 0;
-    if (c == 'v') return 1;
-    if (c == '<') return 2;
-    if (c == '>') return 3;
+int getDirection(char dir) {
+    if      (dir == '^') return 0;
+    else if (dir == 'v') return 1;
+    else if (dir == '<') return 2;
+    else if (dir == '>') return 3;
     return -1;
 }
 
-// Function to move the robot
-void moveRobot(char dir) {
-    int D = getDirection(dir);
-    int DX = dx[D];
-    int DY = dy[D];
+struct RobotMap {
+    int RX, RY; // robot
+    int BX, BY; // bounds
+    char grid[MAX_ROWS][MAX_COLS];
+    std::vector<char> moves;
 
-    int nx = RX;
-    int ny = RY;
-
-    while (1) {
-        nx += DX;
-        ny += DY;
-        char next = grid[ny][nx];
-        if (next == '#') return;
-        if (next == '.') break;
-    }
-
-    while (1) {
-        int PX = nx - DX;
-        int PY = ny - DY;
-        grid[ny][nx] = grid[PY][PX];
-        nx = PX;
-        ny = PY;
-        if (nx == RX && ny == RY) break;
-    }
-
-    grid[RY][RX] = '.';
-    RX += DX;
-    RY += DY;
-}
-
-// Calculate GPS coordinates of all boxes
-int part1(void) {
-    int gps_sum = 0;
-    for (int i = 0; i < rows; i++) {
-        for (int j = 0; j < cols; j++) {
-            if (grid[i][j] == 'O') {
-                gps_sum += (100 * i) + j;
+    void PrintGrid(void) {
+        for (int y = 0; y < BY; ++y) {
+            for (int x = 0; x < BX; ++x) {
+                printf("%c",grid[y][x]);
             }
+            printf("\n");
         }
     }
-    return gps_sum;
-}
 
-void init(const char *path) {
+    void PrintMoves(void) {
+        for (const auto &ch : moves) {
+            printf("%c", ch);
+        }
+        printf("\n");
+    }
+
+    void Walk(int DY, int DX) {
+        int nx = RX,ny=RY,PX,PY;
+        char next;
+
+        while (1) {
+            nx += DX;
+            ny += DY;
+            next = grid[ny][nx];
+            if (next == '#') return;
+            if (next == '.') break;
+        }
+
+        while (1) {
+            PX = nx - DX;
+            PY = ny - DY;
+            grid[ny][nx] = grid[PY][PX];
+            nx = PX;
+            ny = PY;
+            if (nx == RX && ny == RY) break;
+        }
+
+        grid[RY][RX] = '.';
+        RX += DX;
+        RY += DY;
+    }
+
+    ssize_t Part1(void) {
+        for (char ch : moves) {
+            int D = getDirection(ch);
+            Walk(dirs[D][0],dirs[D][1]);
+        }
+
+        ssize_t acc = 0;
+        for (int y = 0; y < BY; y++) {
+            for (int x = 0; x < BX; x++) {
+                if (grid[y][x] == 'O') {
+                    acc += (100 * y) + x;
+                }
+            }
+        }
+        return acc;
+    }
+};
+
+char *readFile(const char *path) {
     int state = 0, X=0, Y=0, move=0;
     int fd = open(path, O_RDONLY,0664);
     long len = lseek(fd,0,SEEK_END);
@@ -78,49 +99,50 @@ void init(const char *path) {
 
     char *buf = (char *)malloc(sizeof(char)*len);
     read(fd,buf,len);
-    input_moves = (char *)malloc(sizeof(char)*100000);
+    close(fd);
+    return buf;
+}
 
-    for (char *ptr = buf; *ptr; ptr++) {
-        if (*ptr == '\n' && *(ptr+1) =='\n') {
-            state = 1;
+RobotMap *parse(char *buffer) {
+    int state = 0, x = 0, y = 0;
+    char *ptr = buffer;
+    RobotMap *map = new RobotMap();
+    while (1) {
+        if (*ptr == '\n'  && *(ptr+1) == '\n') {
+            map->BY++;
             ptr += 2;
-        } else if (*ptr == '\n') {
-            switch (state) {
-                case 0: Y++; X = 0; ptr++; break;
-                case 1: ptr++; break;
-            }
+            break;
+        }
+        if (*ptr == '\n') {
+            map->BX = 0;
+            map->BY++;
+            ptr++;
         }
 
-        if (*ptr == '\0') break;
-        if (*ptr == '@') { RX = X; RY = Y; }
-
-        switch (state) {
-            case 0: grid[Y][X++] = *ptr; break;
-            case 1: input_moves[move++] = *ptr; break;
+        if (*ptr == '@') {
+            map->RX = map->BX;
+            map->RY = map->BY;
         }
+        map->grid[map->BY][map->BX++] = *ptr++;
     }
 
-    rows = Y;
-    cols = X;
-    printf("rows=%d cols=%d\n",rows,cols);
-    printf("RX=%d RY=%d\n",RX,RY);
+    while (1) {
+        if (*ptr == '\n') ptr++;
+        if (*ptr == '\0') break;
+        map->moves.push_back(*ptr++);
+    }
 
-    moves = move;
-    close(fd);
-    free(buf);
+    return map;
 }
+
 
 int main() {
-    init("./example.txt");
-    rows = 0;
+    char *buffer = readFile("./input.txt");
+    auto robot = parse(buffer);
+    printf("Part1: %ld\n", robot->Part1());
 
-    for (int i = 0; i < moves; ++i) {
-        moveRobot(input_moves[i]);
-    }
+    free(buffer);
 
-    // Output the sum of GPS coordinates
-    printf("GPS: %d\n", part1());
-    free(input_moves);
+    delete robot;
     return 0;
 }
-
