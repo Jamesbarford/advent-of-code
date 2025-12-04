@@ -3,3 +3,4 @@
 | Day | PT1 | PT2 |
 | --- | ---- | ---- |
 | [1](https://adventofcode.com/2025/day/1) | ⭐ | ⭐ |
+| [2](https://adventofcode.com/2025/day/2) | ⭐ | ⭐ |
