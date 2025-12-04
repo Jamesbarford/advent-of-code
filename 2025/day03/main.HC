@@ -43,7 +43,6 @@ I64 Solve1(U8 *buffer)
     U8 s2 = GetBigFrom(line, idx + 1, line_len, &idx);
     line = GetLine(&buffer);
     I64 num = ((s1-'0')*10)+(s2-'0');
-    "num = %d\n",num;
     acc += num;
   }
   return acc;
@@ -51,11 +50,28 @@ I64 Solve1(U8 *buffer)
 
 I64 Solve2(U8 *buffer)
 {
-  I64 acc = 0;
   U8 *line = GetLine(&buffer);
-  I64 line_len = StrLen(line);
-
+  I64 len = StrLen(line);
+  U8 stack[1000];
+  I64 acc = 0;
   while (line) {
+    I64 to_remove = len - 12;
+    I64 top = 0;
+    for (I64 i = 0; i < len; i++) {
+      U8 ch = line[i];
+      while (to_remove > 0 && top > 0 && stack[top - 1] < ch) {
+        top--;
+        to_remove--;
+      }
+      stack[top++] = ch;
+    }
+
+    if (top > 12) {
+      top = 12;
+    }
+
+    stack[top] = '\0';
+    acc += Atoi(stack);
     line = GetLine(&buffer);
   }
   return acc;
@@ -63,7 +79,7 @@ I64 Solve2(U8 *buffer)
 
 U0 Main(U0)
 {
-  U8 *buffer = FileRead("./sample.txt");
+  U8 *buffer = FileRead("./input.txt");
   "s1 = %lld\n", Solve1(buffer);
   "s2 = %lld\n", Solve2(buffer);
   Free(buffer);
