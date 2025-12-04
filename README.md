@@ -7,6 +7,7 @@ There might be splatterings of other languages but for most of the years the cod
 | --- | ---- | ---- |
 | [1](https://adventofcode.com/2025/day/1) | ⭐ | ⭐ |
 | [2](https://adventofcode.com/2025/day/2) | ⭐ | ⭐ |
+| [3](https://adventofcode.com/2025/day/3) | ⭐ | |
 
 ## Building 🎅🏻
 For the less esoteric languages a `c` compiler will suffice
